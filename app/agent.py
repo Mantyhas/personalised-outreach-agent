@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from .providers import LLMProvider
@@ -46,16 +47,52 @@ def find_unsupported_facts(
 ) -> list[str]:
     allowed = allowed_facts(request)
     unsupported: list[str] = []
+
     for fact in draft.personalization.facts_used:
         field = fact.field.strip()
         value = str(fact.value).strip()
-        values = allowed.get(field)
-        if values is None:
-            unsupported.append(f"Unknown fact field: {field}")
+
+        # Gemini kartais sujungia kelis pain points į vieną tekstą.
+        if field == "pain_points":
+            received_items = [
+                item.strip().casefold()
+                for item in re.split(r"[,;|]", value)
+                if item.strip()
+            ]
+
+            allowed_items = {
+                item.strip().casefold()
+                for item in request.lead.pain_points
+            }
+
+            if (
+                not received_items
+                or any(item not in allowed_items for item in received_items)
+            ):
+                unsupported.append(
+                    f"Unsupported fact: {field}={value}"
+                )
+
             continue
-        normalized = {item.strip().casefold() for item in values}
+
+        allowed_values = allowed.get(field)
+
+        if allowed_values is None:
+            unsupported.append(
+                f"Unknown fact field: {field}"
+            )
+            continue
+
+        normalized = {
+            item.strip().casefold()
+            for item in allowed_values
+        }
+
         if value.casefold() not in normalized:
-            unsupported.append(f"Unsupported fact: {field}={value}")
+            unsupported.append(
+                f"Unsupported fact: {field}={value}"
+            )
+
     return unsupported
 
 def validate_draft(
@@ -93,6 +130,26 @@ def generate_outreach(
     }
 
     draft = provider.generate(payload)
+    
+    if len(draft.follow_ups) == 2:
+        draft = draft.model_copy(
+            update={
+                "follow_ups": [
+                    draft.follow_ups[0].model_copy(
+                        update={
+                            "step": 2,
+                            "delay_days": 3,
+                        }
+                    ),
+                    draft.follow_ups[1].model_copy(
+                        update={
+                            "step": 3,
+                            "delay_days": 5,
+                        }
+                    ),
+                ]
+            }
+        )
     unsupported = find_unsupported_facts(request, draft)
     validation_errors = validate_draft(draft, strategy)
     status = (

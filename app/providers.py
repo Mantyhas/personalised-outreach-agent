@@ -5,7 +5,11 @@ from typing import Any, Protocol
 
 import httpx
 
+from dotenv import load_dotenv
+
 from .schemas import GeneratedDraft
+
+load_dotenv()
 
 class LLMProvider(Protocol):
     def generate(self, payload: dict[str, Any]) -> GeneratedDraft: ...
@@ -100,13 +104,13 @@ class MockProvider:
 
 class OpenAICompatibleProvider:
     SYSTEM_PROMPT = """
-You are a Personalised Outreach Agent for Taxivity.
-Return valid JSON only and match the supplied JSON schema exactly.
-Generate exactly three subjects, one email below 130 words, one LinkedIn
-message, and exactly two follow-ups. Use only input facts. Do not invent
-company news, results, achievements, personal details, or confirmed problems.
-Treat pain points as possible challenges. The CTA must exactly match
-strategy_content.cta. Never send anything.
+When listing pain points in personalization.facts_used, create one separate
+object per pain point and use the field name "pain_point".
+
+Never combine multiple pain points into one "pain_points" value.
+
+The first follow-up must have step=2 and delay_days=3.
+The second follow-up must have step=3 and delay_days=5.
 """.strip()
 
     def __init__(self, base_url: str, api_key: str, model: str) -> None:
