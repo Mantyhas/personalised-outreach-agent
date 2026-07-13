@@ -1,0 +1,38 @@
+{
+  "lead_id": "lead_001",
+  "lead": {
+    "company_name": "Example GmbH",
+    "contact_first_name": "Anna",
+    "contact_role": "Finance Director",
+    "industry": "Construction",
+    "employees": 250,
+    "annual_revenue": "€50M–€100M",
+    "country": "Germany",
+    "erp": "SAP",
+    "accounting_system": "Oracle",
+    "company_description": "A construction company operating across Germany.",
+    "pain_points": [
+      "manual reconciliation",
+      "audit preparation"
+    ],
+    "qualification_score": 87
+  },
+  "strategy_selection": {
+    "selected_strategies": [
+      {
+        "id": "audit_risk",
+        "score": 92,
+        "matched_on": {
+          "industry": "Construction",
+          "role": "Finance Director",
+          "company_size": "250 employees",
+          "pain_points": [
+            "manual reconciliation",
+            "audit preparation"
+          ],
+          "country": "Germany"
+        }
+      }
+    ]
+  }
+}
