@@ -2,8 +2,12 @@ from fastapi import FastAPI, HTTPException
 from pydantic import ValidationError
 
 from .agent import generate_outreach
+from .input_adapter import normalize_outreach_request
 from .providers import get_provider
-from .schemas import OutreachOutput, OutreachRequest
+from .schemas import (
+    OutreachOutput,
+    RawStrategyAgentOutput,
+)
 from .strategies import STRATEGY_LIBRARY
 
 app = FastAPI(
@@ -29,27 +33,55 @@ def strategies() -> dict[str, list[dict[str, object]]]:
         ]
     }
 
-@app.post("/personalised-outreach", response_model=OutreachOutput)
-def personalised_outreach(payload: OutreachRequest) -> OutreachOutput:
+@app.post(
+    "/personalised-outreach",
+    response_model=OutreachOutput,
+)
+def personalised_outreach(
+    payload: RawStrategyAgentOutput,
+) -> OutreachOutput:
     try:
-        return generate_outreach(payload, get_provider())
+        normalized_payload = normalize_outreach_request(
+            payload
+        )
+
+        return generate_outreach(
+            normalized_payload,
+            get_provider(),
+        )
+
     except KeyError as error:
         raise HTTPException(
             status_code=400,
-            detail={"code": "STRATEGY_NOT_FOUND", "message": str(error)},
+            detail={
+                "code": "STRATEGY_NOT_FOUND",
+                "message": str(error),
+            },
         ) from error
+
     except ValueError as error:
         raise HTTPException(
             status_code=400,
-            detail={"code": "INVALID_INPUT_OR_OUTPUT", "message": str(error)},
+            detail={
+                "code": "INVALID_INPUT_OR_OUTPUT",
+                "message": str(error),
+            },
         ) from error
+
     except ValidationError as error:
         raise HTTPException(
             status_code=502,
-            detail={"code": "MODEL_OUTPUT_VALIDATION_ERROR", "message": str(error)},
+            detail={
+                "code": "MODEL_OUTPUT_VALIDATION_ERROR",
+                "message": str(error),
+            },
         ) from error
+
     except Exception as error:
         raise HTTPException(
             status_code=502,
-            detail={"code": "AGENT_PROVIDER_ERROR", "message": str(error)},
+            detail={
+                "code": "AGENT_PROVIDER_ERROR",
+                "message": str(error),
+            },
         ) from error

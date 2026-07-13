@@ -1,72 +1,117 @@
 from fastapi.testclient import TestClient
+
 from app.main import app
+
 
 client = TestClient(app)
 
+
 def valid_payload() -> dict:
     return {
-        "lead_id": "lead_001",
-        "lead": {
-            "company_name": "Example GmbH",
-            "contact_first_name": "Anna",
-            "contact_role": "Finance Director",
+        "id": "audit_risk_reduction",
+        "score": 122.0,
+        "matched_on": {
             "industry": "Construction",
-            "employees": 250,
-            "annual_revenue": "€50M–€100M",
-            "country": "Germany",
+            "role": "Finance Director",
+            "company_size": "250 employees",
+            "pain_points": [
+                "audit prep",
+            ],
+            "country": "Lithuania",
             "erp": "SAP",
             "accounting_system": "Oracle",
-            "company_description": "A construction company operating across Germany.",
-            "pain_points": ["manual reconciliation", "audit preparation"],
+            "annual_revenue": None,
             "qualification_score": 87,
         },
-        "strategy_selection": {
-            "selected_strategies": [
+        "strategy": {
+            "id": "audit_risk_reduction",
+            "name": "Audit Risk Reduction",
+            "description": (
+                "Position Taxivity as a proactive tax compliance "
+                "platform that identifies audit risks before they "
+                "become regulatory problems."
+            ),
+            "talking_points": [
                 {
-                    "id": "audit_risk",
-                    "score": 92,
-                    "matched_on": {
-                        "industry": "Construction",
-                        "role": "Finance Director",
-                        "company_size": "250 employees",
-                        "pain_points": [
-                            "manual reconciliation",
-                            "audit preparation",
-                        ],
-                        "country": "Germany",
-                    },
-                }
-            ]
+                    "title": "Reduce Audit Exposure",
+                    "description": (
+                        "Identify potential tax issues before "
+                        "they become audit findings."
+                    ),
+                },
+                {
+                    "title": "Automate Compliance Checks",
+                    "description": (
+                        "Replace manual VAT validation with "
+                        "automated controls."
+                    ),
+                },
+            ],
+            "cta": "Schedule a 30-minute compliance assessment.",
+            "priority": 90,
         },
     }
 
+
 def test_health() -> None:
     response = client.get("/health")
+
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
 
+
 def test_generates_outreach(monkeypatch) -> None:
     monkeypatch.setenv("LLM_PROVIDER", "mock")
-    response = client.post("/personalised-outreach", json=valid_payload())
+
+    response = client.post(
+        "/personalised-outreach",
+        json=valid_payload(),
+    )
+
     assert response.status_code == 200
+
     data = response.json()
+
     assert data["status"] == "outreach_drafted"
+    assert data["strategy_id"] == "audit_risk_reduction"
     assert len(data["subject_options"]) == 3
     assert len(data["follow_ups"]) == 2
+    assert data["quality_checks"]["strategy_score"] == 122.0
     assert data["quality_checks"]["needs_human_review"] is True
     assert data["quality_checks"]["validation_errors"] == []
 
+
 def test_rejects_unqualified_lead(monkeypatch) -> None:
     monkeypatch.setenv("LLM_PROVIDER", "mock")
-    payload = valid_payload()
-    payload["lead"]["qualification_score"] = 40
-    response = client.post("/personalised-outreach", json=payload)
-    assert response.status_code == 400
 
-def test_rejects_unknown_strategy(monkeypatch) -> None:
-    monkeypatch.setenv("LLM_PROVIDER", "mock")
     payload = valid_payload()
-    payload["strategy_selection"]["selected_strategies"][0]["id"] = "missing"
-    response = client.post("/personalised-outreach", json=payload)
+    payload["matched_on"]["qualification_score"] = 40
+
+    response = client.post(
+        "/personalised-outreach",
+        json=payload,
+    )
+
     assert response.status_code == 400
-    assert response.json()["detail"]["code"] == "STRATEGY_NOT_FOUND"
+    assert (
+        response.json()["detail"]["code"]
+        == "INVALID_INPUT_OR_OUTPUT"
+    )
+
+
+def test_rejects_mismatched_strategy_id(monkeypatch) -> None:
+    monkeypatch.setenv("LLM_PROVIDER", "mock")
+
+    payload = valid_payload()
+    payload["id"] = "different_strategy"
+
+    response = client.post(
+        "/personalised-outreach",
+        json=payload,
+    )
+
+    assert response.status_code == 400
+    assert (
+        response.json()["detail"]["code"]
+        == "INVALID_INPUT_OR_OUTPUT"
+    )

@@ -18,11 +18,11 @@ class LeadData(StrictModel):
     accounting_system: str | None = None
     company_description: str | None = None
     pain_points: list[str] = Field(default_factory=list)
-    qualification_score: float = Field(ge=0, le=100)
+    qualification_score: float = Field(ge=0)
 
 class SelectedStrategy(StrictModel):
     id: str = Field(min_length=1)
-    score: float = Field(ge=0, le=100)
+    score: float = Field(ge=0)
     matched_on: dict[str, Any] = Field(default_factory=dict)
 
 class StrategySelection(StrictModel):
@@ -42,6 +42,26 @@ class StrategyContent(StrictModel):
     talking_points: list[str]
     cta: str
     priority: int = 0
+
+class StrategyTalkingPoint(StrictModel):
+    title: str = Field(min_length=1)
+    description: str = Field(min_length=1)
+
+
+class RawStrategyContent(StrictModel):
+    id: str = Field(min_length=1)
+    name: str = Field(min_length=1)
+    description: str = Field(min_length=1)
+    talking_points: list[StrategyTalkingPoint]
+    cta: str = Field(min_length=1)
+    priority: int = 0
+
+
+class RawStrategyAgentOutput(StrictModel):
+    id: str = Field(min_length=1)
+    score: float = Field(ge=0)
+    matched_on: dict[str, Any]
+    strategy: RawStrategyContent
 
 class OutreachRequest(StrictModel):
     lead_id: str = Field(min_length=1)
