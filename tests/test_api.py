@@ -8,48 +8,47 @@ client = TestClient(app)
 
 def valid_payload() -> dict:
     return {
-        "id": "audit_risk_reduction",
-        "score": 122.0,
-        "matched_on": {
-            "industry": "Construction",
-            "role": "Finance Director",
-            "company_size": "250 employees",
-            "pain_points": [
-                "audit prep",
-            ],
-            "country": "Lithuania",
-            "erp": "SAP",
-            "accounting_system": "Oracle",
-            "annual_revenue": None,
-            "qualification_score": 87,
-        },
-        "strategy": {
-            "id": "audit_risk_reduction",
-            "name": "Audit Risk Reduction",
-            "description": (
-                "Position Taxivity as a proactive tax compliance "
-                "platform that identifies audit risks before they "
-                "become regulatory problems."
-            ),
-            "talking_points": [
-                {
-                    "title": "Reduce Audit Exposure",
-                    "description": (
-                        "Identify potential tax issues before "
-                        "they become audit findings."
-                    ),
+        "selected_strategies": [
+            {
+                "id": "audit_risk_reduction",
+                "score": 122.0,
+                "matched_on": {
+                    "industry": "Construction",
+                    "role": "Finance Director",
+                    "company_size": "250 employees",
+                    "pain_points": [
+                        "audit prep",
+                    ],
+                    "country": "Lithuania",
+                    "erp": "SAP",
+                    "accounting_system": "Oracle",
+                    "annual_revenue": None,
+                    "qualification_score": 87,
                 },
-                {
-                    "title": "Automate Compliance Checks",
+                "strategy": {
+                    "id": "audit_risk_reduction",
+                    "name": "Audit Risk Reduction",
                     "description": (
-                        "Replace manual VAT validation with "
-                        "automated controls."
+                        "Position Taxivity as a proactive tax "
+                        "compliance platform."
                     ),
+                    "talking_points": [
+                        {
+                            "title": "Reduce Audit Exposure",
+                            "description": (
+                                "Identify potential tax issues "
+                                "before audit findings."
+                            ),
+                        }
+                    ],
+                    "cta": (
+                        "Schedule a 30-minute "
+                        "compliance assessment."
+                    ),
+                    "priority": 90,
                 },
-            ],
-            "cta": "Schedule a 30-minute compliance assessment.",
-            "priority": 90,
-        },
+            }
+        ]
     }
 
 
@@ -85,7 +84,9 @@ def test_rejects_unqualified_lead(monkeypatch) -> None:
     monkeypatch.setenv("LLM_PROVIDER", "mock")
 
     payload = valid_payload()
-    payload["matched_on"]["qualification_score"] = 40
+    payload["selected_strategies"][0]["matched_on"][
+    "qualification_score"
+] = 40
 
     response = client.post(
         "/personalised-outreach",
@@ -103,7 +104,7 @@ def test_rejects_mismatched_strategy_id(monkeypatch) -> None:
     monkeypatch.setenv("LLM_PROVIDER", "mock")
 
     payload = valid_payload()
-    payload["id"] = "different_strategy"
+    payload["selected_strategies"][0]["id"] = "different_strategy"
 
     response = client.post(
         "/personalised-outreach",
