@@ -63,6 +63,12 @@ class RawStrategyAgentOutput(StrictModel):
     matched_on: dict[str, Any]
     strategy: RawStrategyContent
 
+class StrategyAgentBatchInput(StrictModel):
+    selected_strategies: list[RawStrategyAgentOutput] = Field(
+        min_length=1,
+        max_length=3,
+    )
+
 class OutreachRequest(StrictModel):
     lead_id: str = Field(min_length=1)
     lead: LeadData

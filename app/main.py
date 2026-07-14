@@ -6,7 +6,7 @@ from .input_adapter import normalize_outreach_request
 from .providers import get_provider
 from .schemas import (
     OutreachOutput,
-    RawStrategyAgentOutput,
+    StrategyAgentBatchInput,
 )
 from .strategies import STRATEGY_LIBRARY
 
@@ -38,11 +38,16 @@ def strategies() -> dict[str, list[dict[str, object]]]:
     response_model=OutreachOutput,
 )
 def personalised_outreach(
-    payload: RawStrategyAgentOutput,
+    payload: StrategyAgentBatchInput,
 ) -> OutreachOutput:
     try:
+        selected_strategy = max(
+            payload.selected_strategies,
+            key=lambda item: item.score,
+        )
+
         normalized_payload = normalize_outreach_request(
-            payload
+            selected_strategy
         )
 
         return generate_outreach(
